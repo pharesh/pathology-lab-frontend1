@@ -97,11 +97,19 @@ const error = ref(null)
 const showPassword = ref(false)
 
 const submit = async () => {
+  if (loading.value) return
   loading.value = true
   error.value = null
   try {
     await auth.login(form.value)
-    router.push('/')
+    // Preload the target chunk in parallel with navigation so it's ready immediately
+    if (auth.isSuperAdmin) {
+      import('@/pages/super/SuperDashboard.vue')
+      router.replace('/super/dashboard')
+    } else {
+      import('@/pages/Dashboard.vue')
+      router.replace('/')
+    }
   } catch (e) {
     error.value = e.response?.data?.message ?? 'Login failed. Check your credentials.'
   } finally {

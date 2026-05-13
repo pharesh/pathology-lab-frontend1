@@ -22,5 +22,15 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['vue', 'vue-router', 'pinia'],
+            http: ['axios'],
+          },
+        },
+      },
+    },
   }
 })
