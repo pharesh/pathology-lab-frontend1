@@ -41,6 +41,7 @@ const navItems = [
   { path: '/super/dashboard', label: 'Dashboard',  icon: '📊' },
   { path: '/super/labs',      label: 'All Labs',    icon: '🏥' },
   { path: '/super/plans',     label: 'Plans',       icon: '📦' },
+  { path: '/super/profile',   label: 'My Profile',  icon: '👤' },
 ]
 
 const isActive = (path) => route.path === path || route.path.startsWith(path + '/')

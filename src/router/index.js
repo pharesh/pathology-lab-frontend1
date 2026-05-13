@@ -29,6 +29,7 @@ const routes = [
   { path: '/super/labs',      component: () => import('@/pages/super/LabList.vue'),        meta: { superAdmin: true } },
   { path: '/super/labs/:id',  component: () => import('@/pages/super/LabDetail.vue'),      meta: { superAdmin: true } },
   { path: '/super/plans',     component: () => import('@/pages/super/PlanList.vue'),       meta: { superAdmin: true } },
+  { path: '/super/profile',   component: () => import('@/pages/super/SuperProfile.vue'),   meta: { superAdmin: true } },
 ]
 
 const router = createRouter({

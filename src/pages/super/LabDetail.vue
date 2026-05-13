@@ -9,6 +9,10 @@
       </div>
       <div class="ml-auto flex items-center gap-3">
         <SubBadge :status="data.subscription?.status" />
+        <button @click="openEditLab"
+          class="border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 text-xs px-4 py-1.5 rounded-lg transition-colors">
+          Edit Lab
+        </button>
         <button @click="toggleActive"
           :class="data.lab.is_active ? 'bg-red-900/30 text-red-400 border-red-700 hover:bg-red-900/50' : 'bg-green-900/30 text-green-400 border-green-700 hover:bg-green-900/50'"
           class="border text-xs px-4 py-1.5 rounded-lg transition-colors">
@@ -141,9 +145,15 @@
 
     <!-- Team Members / Credentials -->
     <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mt-5">
-      <div class="px-5 py-4 border-b border-gray-700">
-        <h3 class="font-semibold text-white">Team Members &amp; Credentials</h3>
-        <p class="text-xs text-gray-400 mt-0.5">Login email is the username. Use "Set Password" to change a user's password.</p>
+      <div class="px-5 py-4 border-b border-gray-700 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-white">Team Members &amp; Credentials</h3>
+          <p class="text-xs text-gray-400 mt-0.5">Login email is the username. Use "Set Password" to change a user's password.</p>
+        </div>
+        <button @click="openAddUser"
+          class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors">
+          + Add User
+        </button>
       </div>
       <table class="w-full text-sm">
         <thead class="bg-gray-900">
@@ -166,8 +176,9 @@
                 class="text-xs border px-2 py-0.5 rounded-full capitalize">{{ u.role }}</span>
             </td>
             <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(u.created_at) }}</td>
-            <td class="px-5 py-3">
+            <td class="px-5 py-3 flex items-center gap-3">
               <button @click="openPwModal(u)" class="text-xs text-indigo-400 hover:text-indigo-300 hover:underline">Set Password</button>
+              <button @click="deleteUser(u)" class="text-xs text-red-400 hover:text-red-300 hover:underline">Remove</button>
             </td>
           </tr>
           <tr v-if="!data.users?.length">
@@ -177,7 +188,89 @@
       </table>
     </div>
 
-    <!-- Set Password Modal -->
+    <!-- ── Edit Lab Modal ── -->
+    <div v-if="editLabModal.show" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div class="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-lg p-6">
+        <h3 class="text-base font-bold text-white mb-5">Edit Lab Details</h3>
+        <div v-if="editLabModal.error" class="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">{{ editLabModal.error }}</div>
+        <div class="grid grid-cols-2 gap-4 mb-5">
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1">Lab Name *</label>
+            <input v-model="editLabModal.form.name" type="text"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Email</label>
+            <input v-model="editLabModal.form.email" type="email"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Phone</label>
+            <input v-model="editLabModal.form.phone" type="tel"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1">Address</label>
+            <input v-model="editLabModal.form.address" type="text"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1">Registration No.</label>
+            <input v-model="editLabModal.form.registration_no" type="text"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button @click="editLabModal.show = false" class="px-4 py-2 text-gray-400 hover:text-white text-sm border border-gray-600 rounded-lg">Cancel</button>
+          <button @click="saveEditLab" :disabled="editLabModal.saving"
+            class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+            {{ editLabModal.saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Add User Modal ── -->
+    <div v-if="addUserModal.show" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div class="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-md p-6">
+        <h3 class="text-base font-bold text-white mb-5">Add User to {{ data.lab.name }}</h3>
+        <div v-if="addUserModal.error" class="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">{{ addUserModal.error }}</div>
+        <div class="space-y-3 mb-5">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Full Name *</label>
+            <input v-model="addUserModal.form.name" type="text" placeholder="Dr. Ramesh Kumar"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Email *</label>
+            <input v-model="addUserModal.form.email" type="email" placeholder="user@lab.com"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Role *</label>
+            <select v-model="addUserModal.form.role"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Password *</label>
+            <input v-model="addUserModal.form.password" type="password" placeholder="Min. 8 characters"
+              class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button @click="addUserModal.show = false" class="px-4 py-2 text-gray-400 hover:text-white text-sm border border-gray-600 rounded-lg">Cancel</button>
+          <button @click="saveAddUser" :disabled="addUserModal.saving"
+            class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+            {{ addUserModal.saving ? 'Adding...' : 'Add User' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Set Password Modal ── -->
     <div v-if="pwModal.show" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div class="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-sm p-6">
         <h3 class="text-base font-bold text-white mb-1">Set Password</h3>
@@ -213,7 +306,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useSuperAdminStore } from '@/stores/superAdminStore'
-import { getSuperLab, toggleLab, setUserPassword } from '@/api/superadmin'
+import { getSuperLab, toggleLab, setUserPassword, updateLab, addLabUser, removeLabUser } from '@/api/superadmin'
 import SubBadge from '@/components/common/SubBadge.vue'
 
 const route      = useRoute()
@@ -248,6 +341,74 @@ async function assign() {
   }
 }
 
+// ── Edit Lab ──────────────────────────────────────────────────────────────────
+const editLabModal = ref({ show: false, saving: false, error: null, form: {} })
+
+function openEditLab() {
+  editLabModal.value = {
+    show: true, saving: false, error: null,
+    form: {
+      name: data.value.lab.name,
+      email: data.value.lab.email ?? '',
+      phone: data.value.lab.phone ?? '',
+      address: data.value.lab.address ?? '',
+      registration_no: data.value.lab.registration_no ?? '',
+    },
+  }
+}
+
+async function saveEditLab() {
+  editLabModal.value.saving = true
+  editLabModal.value.error = null
+  try {
+    await updateLab(data.value.lab.id, editLabModal.value.form)
+    await load()
+    editLabModal.value.show = false
+  } catch (e) {
+    const errs = e.response?.data?.errors
+    editLabModal.value.error = errs
+      ? Object.values(errs).flat().join(' · ')
+      : (e.response?.data?.message ?? 'Failed to update lab.')
+  } finally {
+    editLabModal.value.saving = false
+  }
+}
+
+// ── Add User ─────────────────────────────────────────────────────────────────
+const addUserModal = ref({ show: false, saving: false, error: null, form: {} })
+
+function openAddUser() {
+  addUserModal.value = { show: true, saving: false, error: null, form: { name: '', email: '', role: 'admin', password: '' } }
+}
+
+async function saveAddUser() {
+  addUserModal.value.saving = true
+  addUserModal.value.error = null
+  try {
+    await addLabUser(data.value.lab.id, addUserModal.value.form)
+    await load()
+    addUserModal.value.show = false
+  } catch (e) {
+    const errs = e.response?.data?.errors
+    addUserModal.value.error = errs
+      ? Object.values(errs).flat().join(' · ')
+      : (e.response?.data?.message ?? 'Failed to add user.')
+  } finally {
+    addUserModal.value.saving = false
+  }
+}
+
+async function deleteUser(user) {
+  if (!confirm(`Remove "${user.name}" (${user.email}) from this lab?`)) return
+  try {
+    await removeLabUser(data.value.lab.id, user.id)
+    await load()
+  } catch (e) {
+    alert(e.response?.data?.message ?? 'Failed to remove user.')
+  }
+}
+
+// ── Set Password ──────────────────────────────────────────────────────────────
 const pwModal = ref({ show: false, user: null, password: '', confirm: '', saving: false, error: null, success: false })
 
 function openPwModal(user) {
@@ -273,6 +434,7 @@ async function savePassword() {
   }
 }
 
+// ── Toggle Active ─────────────────────────────────────────────────────────────
 async function toggleActive() {
   const isActive = data.value.lab.is_active
   if (!confirm(`${isActive ? 'Deactivate' : 'Activate'} "${data.value.lab.name}"?${isActive ? ' This will block all users of this lab.' : ''}`)) return
