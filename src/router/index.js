@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 const routes = [
   // ── Public ──────────────────────────────────────────────────────────────
   { path: '/login',    component: () => import('@/pages/Login.vue'),    meta: { public: true } },
-  { path: '/register', component: () => import('@/pages/Register.vue'), meta: { public: true } },
+  // { path: '/register', component: () => import('@/pages/Register.vue'), meta: { public: true } },
 
   // ── Lab-facing app ───────────────────────────────────────────────────────
   { path: '/',                   component: () => import('@/pages/Dashboard.vue') },

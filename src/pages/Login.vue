@@ -68,16 +68,16 @@
           </button>
         </form>
 
-        <p class="text-center text-xs text-gray-400 mt-6">
+        <!-- <p class="text-center text-xs text-gray-400 mt-6">
           Default: admin@pathlab.com / password
-        </p>
+        </p> -->
 
-        <div class="border-t border-gray-100 mt-6 pt-5 text-center">
+        <!-- <div class="border-t border-gray-100 mt-6 pt-5 text-center">
           <p class="text-sm text-gray-500">
             New lab?
             <RouterLink to="/register" class="text-blue-600 hover:underline font-medium">Create your account</RouterLink>
           </p>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
