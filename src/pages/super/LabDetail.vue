@@ -138,6 +138,71 @@
         </div>
       </div>
     </div>
+
+    <!-- Team Members / Credentials -->
+    <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden mt-5">
+      <div class="px-5 py-4 border-b border-gray-700">
+        <h3 class="font-semibold text-white">Team Members &amp; Credentials</h3>
+        <p class="text-xs text-gray-400 mt-0.5">Login email is the username. Use "Set Password" to change a user's password.</p>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-900">
+          <tr>
+            <th class="text-left px-5 py-3 text-gray-400 text-xs uppercase">Name</th>
+            <th class="text-left px-5 py-3 text-gray-400 text-xs uppercase">Email (Username)</th>
+            <th class="text-left px-5 py-3 text-gray-400 text-xs uppercase">Role</th>
+            <th class="text-left px-5 py-3 text-gray-400 text-xs uppercase">Joined</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="u in data.users" :key="u.id" class="border-b border-gray-700/50 hover:bg-gray-700/20">
+            <td class="px-5 py-3 text-white font-medium">{{ u.name }}</td>
+            <td class="px-5 py-3">
+              <span class="font-mono text-indigo-300 text-xs bg-indigo-900/30 px-2 py-1 rounded">{{ u.email }}</span>
+            </td>
+            <td class="px-5 py-3">
+              <span :class="u.role === 'admin' ? 'bg-yellow-900/30 text-yellow-400 border-yellow-700' : 'bg-gray-700 text-gray-300 border-gray-600'"
+                class="text-xs border px-2 py-0.5 rounded-full capitalize">{{ u.role }}</span>
+            </td>
+            <td class="px-5 py-3 text-gray-500 text-xs">{{ formatDate(u.created_at) }}</td>
+            <td class="px-5 py-3">
+              <button @click="openPwModal(u)" class="text-xs text-indigo-400 hover:text-indigo-300 hover:underline">Set Password</button>
+            </td>
+          </tr>
+          <tr v-if="!data.users?.length">
+            <td colspan="5" class="text-center py-6 text-gray-500">No users found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Set Password Modal -->
+    <div v-if="pwModal.show" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div class="bg-gray-800 rounded-2xl border border-gray-700 w-full max-w-sm p-6">
+        <h3 class="text-base font-bold text-white mb-1">Set Password</h3>
+        <p class="text-xs text-gray-400 mb-4">User: <span class="text-indigo-300 font-mono">{{ pwModal.user?.email }}</span></p>
+        <div v-if="pwModal.error" class="mb-3 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">{{ pwModal.error }}</div>
+        <div v-if="pwModal.success" class="mb-3 p-3 bg-green-900/30 border border-green-700 rounded-lg text-green-400 text-sm">Password updated successfully.</div>
+        <div class="mb-3">
+          <label class="block text-xs font-medium text-gray-400 mb-1">New Password</label>
+          <input v-model="pwModal.password" type="password" placeholder="Min. 8 characters"
+            class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div class="mb-5">
+          <label class="block text-xs font-medium text-gray-400 mb-1">Confirm Password</label>
+          <input v-model="pwModal.confirm" type="password" placeholder="Repeat password"
+            class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div class="flex justify-end gap-3">
+          <button @click="pwModal.show = false" class="px-4 py-2 text-gray-400 hover:text-white text-sm border border-gray-600 rounded-lg">Cancel</button>
+          <button @click="savePassword" :disabled="pwModal.saving"
+            class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+            {{ pwModal.saving ? 'Saving...' : 'Update Password' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
   <div v-else class="flex items-center justify-center h-64">
     <div class="text-gray-500">Loading...</div>
@@ -148,7 +213,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useSuperAdminStore } from '@/stores/superAdminStore'
-import { getSuperLab, toggleLab } from '@/api/superadmin'
+import { getSuperLab, toggleLab, setUserPassword } from '@/api/superadmin'
 import SubBadge from '@/components/common/SubBadge.vue'
 
 const route      = useRoute()
@@ -180,6 +245,31 @@ async function assign() {
     assignError.value = e.response?.data?.message ?? 'Failed to assign subscription.'
   } finally {
     assigning.value = false
+  }
+}
+
+const pwModal = ref({ show: false, user: null, password: '', confirm: '', saving: false, error: null, success: false })
+
+function openPwModal(user) {
+  pwModal.value = { show: true, user, password: '', confirm: '', saving: false, error: null, success: false }
+}
+
+async function savePassword() {
+  const m = pwModal.value
+  if (m.password.length < 8) { m.error = 'Password must be at least 8 characters.'; return }
+  if (m.password !== m.confirm) { m.error = 'Passwords do not match.'; return }
+  m.saving = true
+  m.error = null
+  try {
+    await setUserPassword(data.value.lab.id, m.user.id, m.password)
+    m.success = true
+    m.password = ''
+    m.confirm = ''
+    setTimeout(() => { pwModal.value.show = false }, 1500)
+  } catch (e) {
+    m.error = e.response?.data?.message ?? 'Failed to update password.'
+  } finally {
+    m.saving = false
   }
 }
 

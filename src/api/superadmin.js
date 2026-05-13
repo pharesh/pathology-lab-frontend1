@@ -16,5 +16,9 @@ export const createPlan     = (data)        => api.post('/super/plans', data)
 export const updatePlan     = (id, data)    => api.patch(`/super/plans/${id}`, data)
 export const deletePlan     = (id)          => api.delete(`/super/plans/${id}`)
 
+// User management
+export const setUserPassword = (labId, userId, password) =>
+  api.patch(`/super/labs/${labId}/users/${userId}/password`, { password })
+
 // Lab-facing subscription status
 export const getMySubStatus = () => api.get('/subscription/status')
