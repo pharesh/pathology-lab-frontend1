@@ -212,6 +212,8 @@ async function create() {
 }
 
 async function toggle(lab) {
+  const action = lab.is_active ? 'Deactivate' : 'Activate'
+  if (!confirm(`${action} "${lab.name}"? ${lab.is_active ? 'This will block all users of this lab.' : ''}`)) return
   await store.toggleLabActive(lab.id)
 }
 

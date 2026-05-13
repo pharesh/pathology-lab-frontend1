@@ -5,7 +5,7 @@
       <RouterLink to="/super/labs" class="text-gray-400 hover:text-white text-sm">← Labs</RouterLink>
       <div>
         <h1 class="text-2xl font-bold text-white">{{ data.lab.name }}</h1>
-        <p class="text-gray-400 text-sm">{{ data.lab.email }} · {{ data.lab.phone }}</p>
+        <p class="text-gray-400 text-sm">{{ data.lab.email }}{{ data.lab.phone ? ` · ${data.lab.phone}` : '' }}</p>
       </div>
       <div class="ml-auto flex items-center gap-3">
         <SubBadge :status="data.subscription?.status" />
@@ -184,6 +184,8 @@ async function assign() {
 }
 
 async function toggleActive() {
+  const isActive = data.value.lab.is_active
+  if (!confirm(`${isActive ? 'Deactivate' : 'Activate'} "${data.value.lab.name}"?${isActive ? ' This will block all users of this lab.' : ''}`)) return
   await toggleLab(data.value.lab.id)
   await load()
 }
