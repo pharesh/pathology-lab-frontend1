@@ -25,9 +25,9 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['vue', 'vue-router', 'pinia'],
-            http: ['axios'],
+          manualChunks(id) {
+            if (id.includes('node_modules/axios')) return 'http'
+            if (id.includes('node_modules/vue') || id.includes('node_modules/@vue') || id.includes('node_modules/pinia')) return 'vendor'
           },
         },
       },
