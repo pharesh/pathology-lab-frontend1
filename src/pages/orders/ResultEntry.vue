@@ -16,6 +16,10 @@
               <option value="processing">Processing</option>
               <option value="completed">Completed</option>
             </select>
+            <button v-if="order.status === 'completed'" @click="printReport"
+              class="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+              Print
+            </button>
             <button v-if="order.status === 'completed'" @click="downloadPdf" :disabled="downloading"
               class="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60">
               {{ downloading ? 'Downloading...' : 'Download Report' }}
@@ -105,6 +109,9 @@ import { getOrder, updateOrderStatus as apiUpdateStatus, submitResults as apiSub
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ErrorAlert from '@/components/common/ErrorAlert.vue'
+import { useAuthStore } from '@/stores/authStore'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const order = ref(null)
@@ -149,6 +156,127 @@ const initRows = (item) => {
 const addRow = (itemId) => {
   if (!resultRows[itemId]) resultRows[itemId] = []
   resultRows[itemId].push({ order_item_id: itemId, parameter_name: '', observed_value: '', unit: '', remarks: '' })
+}
+
+const printReport = () => {
+  const patient = order.value.patient
+  const items   = order.value.order_items ?? []
+
+  const getRef = (item, paramName) => {
+    const r = item.test?.reference_ranges?.find(r => r.parameter_name?.toLowerCase() === paramName?.toLowerCase())
+    if (!r) return '—'
+    if (r.text_range) return r.text_range
+    if (r.min_value != null || r.max_value != null) return `${r.min_value ?? ''} – ${r.max_value ?? ''} ${r.unit ?? ''}`.trim()
+    return '—'
+  }
+
+  const getFlag = (item, result) => {
+    if (!result.is_abnormal) return ''
+    const r = item.test?.reference_ranges?.find(r => r.parameter_name?.toLowerCase() === result.parameter_name?.toLowerCase())
+    if (!r) return '*'
+    const val = parseFloat(result.observed_value)
+    if (!isNaN(val)) {
+      if (r.min_value != null && val < parseFloat(r.min_value)) return 'L'
+      if (r.max_value != null && val > parseFloat(r.max_value)) return 'H'
+    }
+    return '*'
+  }
+
+  let resultsHtml = ''
+  for (const item of items) {
+    if (!item.results?.length) continue
+    const rows = item.results.map(r => {
+      const flag = getFlag(item, r)
+      return `<tr>
+        <td>${r.parameter_name}</td>
+        <td class="${r.is_abnormal ? 'abn' : ''}">${r.observed_value}</td>
+        <td>${r.unit ?? '—'}</td>
+        <td>${getRef(item, r.parameter_name)}</td>
+        <td class="${flag ? 'flag' : ''}">${flag || '✓'}</td>
+        <td>${r.remarks ?? '—'}</td>
+      </tr>`
+    }).join('')
+    resultsHtml += `
+      <div class="test-block">
+        <div class="test-title">${item.test.test_name} <span class="test-code">(${item.test.test_code} | ${item.test.sample_type})</span></div>
+        <table class="rt"><thead><tr>
+          <th style="width:28%">Parameter</th>
+          <th style="width:15%">Observed Value</th>
+          <th style="width:10%">Unit</th>
+          <th style="width:25%">Reference Range</th>
+          <th style="width:7%">Flag</th>
+          <th style="width:15%">Remarks</th>
+        </tr></thead><tbody>${rows}</tbody></table>
+      </div>`
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Report – ${order.value.order_uid}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:Arial,sans-serif;font-size:11px;color:#222}
+  /*
+   * Top  30mm  = pre-printed header (JAY LAB logo + staff bar ~3 cm)
+   * Bottom 18mm = pre-printed footer bar (~1.5 cm) + safe gap
+   * Left/Right 12mm = side margins
+   * These margins apply to EVERY printed page automatically.
+   */
+  @page{size:A4 portrait;margin:30mm 12mm 18mm 12mm}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+  /* ── Patient bar ── */
+  .pbar{background:#f5eeff;border:1px solid #c084fc;padding:8px 16px;margin:8px 0}
+  .pbar table{width:100%;border-collapse:collapse}
+  .pbar td{padding:2px 6px;font-size:10.5px}
+  .pbar td:nth-child(odd){font-weight:bold;color:#6a0dad;width:110px}
+
+  /* ── Test block ── */
+  .test-block{margin-bottom:10px}
+  .test-title{background:#7c3aed;color:#fff;padding:4px 10px;font-size:11px;font-weight:bold}
+  .test-code{font-weight:normal;font-size:9px;opacity:.85}
+  .rt{width:100%;border-collapse:collapse}
+  .rt th{background:#ede9fe;color:#5b21b6;padding:4px 7px;text-align:left;font-size:10px;border:1px solid #ddd}
+  .rt td{padding:4px 7px;border:1px solid #eee;font-size:10.5px}
+  .rt tr:nth-child(even) td{background:#faf5ff}
+  .abn{color:#c0392b;font-weight:bold}
+  .flag{color:#c0392b;font-weight:bold}
+
+  /* ── Footer ── */
+  .ftr{margin-top:16px;border-top:2px solid #7c3aed;padding:8px 16px;display:flex;justify-content:space-between;align-items:flex-end}
+  .ftr-left{font-size:9px;color:#555;line-height:1.6}
+  .sig-line{width:160px;border-top:1px solid #333;text-align:center;padding-top:3px;font-size:9px}
+</style></head><body>
+
+<div class="pbar">
+  <table>
+    <tr>
+      <td>Patient Name</td><td>${patient?.name ?? '—'}</td>
+      <td>Patient ID</td><td>${patient?.patient_uid ?? '—'}</td>
+      <td>Order No</td><td>${order.value.order_uid}</td>
+    </tr>
+    <tr>
+      <td>Age / Sex</td><td>${patient?.age ?? '—'} ${patient?.age_unit ?? ''} / ${patient?.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : '—'}</td>
+      <td>Phone</td><td>${patient?.phone ?? '—'}</td>
+      <td>Referred By</td><td>${patient?.referred_by ?? 'Self'}</td>
+    </tr>
+  </table>
+</div>
+
+${resultsHtml}
+
+<div class="ftr">
+  <div class="ftr-left">
+    <div style="font-style:italic">* This report is computer generated. Results are for clinical reference only.</div>
+  </div>
+  <div><div class="sig-line">Pathologist Signature &amp; Seal</div></div>
+</div>
+
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`
+
+  const win = window.open('', '_blank', 'width=850,height=700')
+  win.document.write(html)
+  win.document.close()
 }
 
 const downloadPdf = async () => {
