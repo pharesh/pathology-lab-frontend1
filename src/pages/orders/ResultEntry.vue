@@ -159,6 +159,7 @@ const addRow = (itemId) => {
 }
 
 const printReport = () => {
+  const lab     = authStore.lab
   const patient = order.value.patient
   const items   = order.value.order_items ?? []
 
@@ -221,7 +222,7 @@ const printReport = () => {
    * Left/Right 12mm = side margins
    * These margins apply to EVERY printed page automatically.
    */
-  @page{size:A4 portrait;margin:30mm 12mm 18mm 12mm}
+  @page{size:A4 portrait;margin:45mm 12mm 18mm 12mm}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 
   /* ── Patient bar ── */
@@ -244,7 +245,10 @@ const printReport = () => {
   /* ── Footer ── */
   .ftr{margin-top:16px;border-top:2px solid #7c3aed;padding:8px 16px;display:flex;justify-content:space-between;align-items:flex-end}
   .ftr-left{font-size:9px;color:#555;line-height:1.6}
-  .sig-line{width:160px;border-top:1px solid #333;text-align:center;padding-top:3px;font-size:9px}
+  .sig-block{text-align:center;min-width:140px}
+  .sig-img{height:48px;max-width:140px;object-fit:contain;display:block;margin:0 auto 2px}
+  .sig-name{border-top:1px solid #333;padding-top:2px;font-size:10px;font-weight:bold;color:#222}
+  .sig-desig{font-size:9px;color:#555}
 </style></head><body>
 
 <div class="pbar">
@@ -268,7 +272,11 @@ ${resultsHtml}
   <div class="ftr-left">
     <div style="font-style:italic">* This report is computer generated. Results are for clinical reference only.</div>
   </div>
-  <div><div class="sig-line">Pathologist Signature &amp; Seal</div></div>
+  <div class="sig-block">
+    ${lab?.signature_url ? `<img src="${lab.signature_url}" class="sig-img" alt="signature" />` : '<div style="height:48px"></div>'}
+    <div class="sig-name">${lab?.doctor_name ?? 'Pathologist'}</div>
+    ${lab?.doctor_designation ? `<div class="sig-desig">${lab.doctor_designation}</div>` : ''}
+  </div>
 </div>
 
 <script>window.onload=function(){window.print()}<\/script>
