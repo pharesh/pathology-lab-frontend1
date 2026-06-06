@@ -11,10 +11,13 @@
           </div>
           <div class="flex gap-2">
             <StatusBadge :status="store.currentBill.payment_status" />
-            <button @click="getInvoice" :disabled="downloadingInvoice"
-              class="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
-              {{ downloadingInvoice ? 'Downloading...' : 'Invoice PDF' }}
-            </button>
+            <div class="flex flex-col items-end gap-1">
+              <button @click="getInvoice" :disabled="downloadingInvoice"
+                class="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-60">
+                {{ downloadingInvoice ? 'Downloading...' : 'Invoice PDF' }}
+              </button>
+              <span v-if="invoiceError" class="text-xs text-red-500">{{ invoiceError }}</span>
+            </div>
           </div>
         </div>
 
@@ -132,13 +135,15 @@ const discount = ref({ type: '', value: 0 })
 const discountLoading = ref(false)
 const discountError = ref(null)
 const downloadingInvoice = ref(false)
+const invoiceError = ref(null)
 
 const getInvoice = async () => {
   downloadingInvoice.value = true
+  invoiceError.value = null
   try {
     await downloadInvoice(store.currentBill.order_id, store.currentBill.bill_uid)
   } catch {
-    alert('Failed to download invoice.')
+    invoiceError.value = 'Failed to download invoice. Please try again.'
   } finally {
     downloadingInvoice.value = false
   }

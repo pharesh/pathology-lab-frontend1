@@ -126,7 +126,10 @@ const submit = async () => {
     const order = await createOrder({ patient_id: selectedPatient.value.id, test_ids: selectedTestIds.value, notes: notes.value })
     router.push(`/orders/${order.data.id}`)
   } catch (e) {
-    error.value = e.response?.data?.errors ?? e.message
+    const d = e.response?.data
+    error.value = d?.message
+      ?? (d?.errors ? Object.values(d.errors).flat().join(' ') : null)
+      ?? e.message
   } finally {
     loading.value = false
   }

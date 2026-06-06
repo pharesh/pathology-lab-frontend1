@@ -223,6 +223,9 @@ async function createBill(order) {
   creatingFor.value = order.id
   try {
     const bill = await billStore.createBill({ order_id: order.id })
+    // Reflect the new bill immediately in the list row
+    const row = store.orders.find(o => o.id === order.id)
+    if (row) row.bill = bill
     router.push(`/billing/${bill.id}`)
   } catch {
     alert('Failed to create bill. It may already exist.')
