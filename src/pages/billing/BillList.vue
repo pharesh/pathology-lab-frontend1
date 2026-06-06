@@ -33,7 +33,10 @@
             <td class="px-4 py-3"><StatusBadge :status="b.payment_status" /></td>
             <td class="px-4 py-3 flex gap-2">
               <RouterLink :to="`/billing/${b.id}`" class="text-blue-600 hover:underline text-xs">View</RouterLink>
-              <a :href="`/api/v1/orders/${b.order_id}/invoice`" target="_blank" class="text-purple-600 hover:underline text-xs">Invoice PDF</a>
+              <button @click="getInvoice(b)" :disabled="downloadingFor === b.id"
+                class="text-purple-600 hover:underline text-xs disabled:opacity-40">
+                {{ downloadingFor === b.id ? '…' : 'Invoice PDF' }}
+              </button>
             </td>
           </tr>
           <tr v-if="!store.bills.length">
@@ -49,11 +52,25 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useBillStore } from '@/stores/billStore'
+import { downloadInvoice } from '@/api/orders'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const store = useBillStore()
 const paymentStatus = ref('')
+const downloadingFor = ref(null)
+
+async function getInvoice(bill) {
+  downloadingFor.value = bill.id
+  try {
+    await downloadInvoice(bill.order_id, bill.bill_uid)
+  } catch {
+    alert('Failed to download invoice.')
+  } finally {
+    downloadingFor.value = null
+  }
+}
+
 const load = () => store.fetchBills({ payment_status: paymentStatus.value || undefined })
 onMounted(load)
 </script>

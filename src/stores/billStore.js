@@ -11,6 +11,7 @@ export const useBillStore = defineStore('bills', () => {
 
   async function fetchBills(params = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getBills(params)
       bills.value = res.data.data
@@ -24,6 +25,7 @@ export const useBillStore = defineStore('bills', () => {
 
   async function fetchBill(id) {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getBill(id)
       currentBill.value = res.data

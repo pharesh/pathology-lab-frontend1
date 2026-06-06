@@ -44,7 +44,11 @@
                   class="text-orange-600 hover:underline text-xs disabled:opacity-40">
                   {{ creatingBillFor === order.id ? '…' : '+ Bill' }}
                 </button>
-                <a v-if="order.status === 'completed'" :href="`/api/v1/orders/${order.id}/report`" target="_blank" class="text-purple-600 hover:underline text-xs">PDF</a>
+                <button v-if="order.status === 'completed'" @click="getPdf(order)"
+                  :disabled="downloadingFor === order.id"
+                  class="text-purple-600 hover:underline text-xs disabled:opacity-40">
+                  {{ downloadingFor === order.id ? '…' : 'PDF' }}
+                </button>
               </td>
             </tr>
             <tr v-if="!patient.orders?.length">
@@ -62,6 +66,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { getPatient } from '@/api/patients'
 import { createBill } from '@/api/bills'
+import { downloadReport } from '@/api/orders'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
@@ -70,6 +75,18 @@ const router = useRouter()
 const patient = ref(null)
 const loading = ref(true)
 const creatingBillFor = ref(null)
+const downloadingFor = ref(null)
+
+async function getPdf(order) {
+  downloadingFor.value = order.id
+  try {
+    await downloadReport(order.id, order.order_uid)
+  } catch {
+    alert('Failed to download report.')
+  } finally {
+    downloadingFor.value = null
+  }
+}
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { dateStyle: 'medium' }) : '—'
 

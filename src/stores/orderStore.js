@@ -11,6 +11,7 @@ export const useOrderStore = defineStore('orders', () => {
 
   async function fetchOrders(params = {}) {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getOrders(params)
       orders.value = res.data.data
@@ -24,6 +25,7 @@ export const useOrderStore = defineStore('orders', () => {
 
   async function fetchOrder(id) {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getOrder(id)
       currentOrder.value = res.data

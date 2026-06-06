@@ -8,12 +8,16 @@ export const useSuperAdminStore = defineStore('superadmin', () => {
   const labs    = ref([])
   const plans   = ref([])
   const loading = ref(false)
+  const error   = ref(null)
 
   async function fetchStats() {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getSuperStats()
       stats.value = res.data
+    } catch (e) {
+      error.value = e.response?.data?.message ?? e.message
     } finally {
       loading.value = false
     }
@@ -21,9 +25,12 @@ export const useSuperAdminStore = defineStore('superadmin', () => {
 
   async function fetchLabs() {
     loading.value = true
+    error.value = null
     try {
       const res = await api.getSuperLabs()
       labs.value = res.data
+    } catch (e) {
+      error.value = e.response?.data?.message ?? e.message
     } finally {
       loading.value = false
     }
@@ -63,5 +70,5 @@ export const useSuperAdminStore = defineStore('superadmin', () => {
     return res.data
   }
 
-  return { stats, labs, plans, loading, fetchStats, fetchLabs, fetchPlans, savePlan, removePlan, assignSub, toggleLabActive, createLabEntry }
+  return { stats, labs, plans, loading, error, fetchStats, fetchLabs, fetchPlans, savePlan, removePlan, assignSub, toggleLabActive, createLabEntry }
 })
